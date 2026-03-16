@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="kk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>№5 зертханалық тәжірибе — Заттардың ерігіштігін зерттеу</title>
+  <style>
+    :root {
+      --bg1: #0f172a;
+      --bg2: #111827;
+      --card: rgba(255,255,255,0.08);
+      --line: rgba(255,255,255,0.14);
+      --text: #eef2ff;
+      --muted: #cbd5e1;
+      --accent: #38bdf8;
+      --accent2: #22c55e;
+      --danger: #ef4444;
+      --warn: #f59e0b;
+      --teamA: #60a5fa;
+      --teamB: #f472b6;
+      --ropePos: 50;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(135deg, var(--bg1), var(--bg2));
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .container {
+      width: min(1200px, 92%);
+      margin: 0 auto;
+      padding: 24px 0 40px;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, rgba(56,189,248,0.14), rgba(34,197,94,0.12));
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+    }
+
+    h1, h2, h3, p { margin-top: 0; }
+    .topbar {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    .nav {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    button, .btn {
+      border: none;
+      border-radius: 14px;
+      padding: 12px 18px;
+      cursor: pointer;
+      font-weight: 700;
+      transition: 0.2s ease;
+      background: white;
+      color: #111827;
+    }
+
+    button:hover, .btn:hover { transform: translateY(-1px); }
+    button:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .btn-primary { background: var(--accent); color: #062033; }
+    .btn-success { background: var(--accent2); color: #052814; }
+    .btn-danger { background: var(--danger); color: white; }
+    .btn-warn { background: var(--warn); color: #1f1300; }
+
+    .page { display: none; margin-top: 20px; }
+    .page.active { display: block; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 20px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 10px 24px rgba(0,0,0,0.22);
+    }
+
+    .muted { color: var(--muted); }
+
+    .teams {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    .team-box {
+      border-radius: 18px;
+      padding: 16px;
+      border: 1px solid var(--line);
+    }
+
+    .team-a { background: rgba(96,165,250,0.14); }
+    .team-b { background: rgba(244,114,182,0.14); }
+
+    .score {
+      font-size: 30px;
+      font-weight: 800;
+      margin: 8px 0;
+    }
+
+    .status-row {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin: 14px 0;
+    }
+
+    .badge {
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--line);
+      font-size: 14px;
+    }
+
+    .rope-wrap {
+      margin: 16px 0 22px;
+      padding: 20px 14px 28px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--line);
+    }
+
+    .rope-field {
+      position: relative;
+      height: 90px;
+      border-radius: 16px;
+      background: linear-gradient(90deg, rgba(96,165,250,0.12), rgba(255,255,255,0.04), rgba(244,114,182,0.12));
+      overflow: hidden;
+    }
+
+    .center-line {
+      position: absolute;
+      left: 50%; top: 0;
+      width: 4px; height: 100%;
+      transform: translateX(-50%);
+      background: rgba(255,255,255,0.8);
+    }
+
+    .win-line-left, .win-line-right {
+      position: absolute;
+      top: 0; height: 100%; width: 4px;
+      background: rgba(255,255,255,0.22);
+    }
+    .win-line-left { left: 18%; }
+    .win-line-right { right: 18%; }
+
+    .rope {
+      position: absolute;
+      top: 50%; left: 50%;
+      width: 70%; height: 12px;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(90deg, #a16207, #fbbf24, #a16207);
+      border-radius: 999px;
+      box-shadow: 0 0 0 3px rgba(0,0,0,0.15);
+    }
+
+    .marker {
+      position: absolute;
+      top: 50%; left: calc(var(--ropePos) * 1%);
+      width: 22px; height: 22px;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      background: white;
+      border: 4px solid #111827;
+      transition: left 0.35s ease;
+      z-index: 4;
+    }
+
+    .puller {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 34px;
+      user-select: none;
+    }
+
+    .puller.left { left: 8px; }
+    .puller.right { right: 8px; transform: translateY(-50%) scaleX(-1); }
+
+    .question-box {
+      min-height: 180px;
+    }
+
+    .question-title {
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      color: #e0f2fe;
+    }
+
+    .answers {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .answer-btn {
+      width: 100%;
+      text-align: left;
+      background: rgba(255,255,255,0.1);
+      color: var(--text);
+      border: 1px solid var(--line);
+      min-height: 70px;
+    }
+
+    .team-panels {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 16px;
+    }
+
+    .panel {
+      border-radius: 18px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.05);
+    }
+
+    .team-a-border { border-left: 6px solid var(--teamA); }
+    .team-b-border { border-left: 6px solid var(--teamB); }
+
+    .timer {
+      font-size: 42px;
+      font-weight: 900;
+      margin: 10px 0;
+      letter-spacing: 1px;
+    }
+
+    .result {
+      margin-top: 16px;
+      padding: 14px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--line);
+      min-height: 60px;
+    }
+
+    .small { font-size: 14px; }
+    .hidden { display: none; }
+
+    .test-header {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .progress {
+      width: 100%;
+      height: 12px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--line);
+      margin-top: 8px;
+    }
+
+    .progress > div {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transition: width 0.3s ease;
+    }
+
+    .test-question {
+      margin-bottom: 16px;
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.05);
+    }
+
+    .option {
+      display: block;
+      margin: 10px 0;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+      cursor: pointer;
+    }
+
+    .option input { margin-right: 10px; }
+
+    .summary {
+      margin-top: 16px;
+      padding: 18px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.07);
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    @media (max-width: 900px) {
+      .grid, .team-panels, .teams, .answers { grid-template-columns: 1fr; }
+      .timer { font-size: 34px; }
+      .question-title { font-size: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="topbar">
+      <div>
+        <h1>№5 зертханалық тәжірибе</h1>
+        <p class="muted">Тақырып: <strong>Заттардың ерігіштігін зерттеу</strong></p>
+      </div>
+      <div class="nav">
+        <button class="btn btn-primary" onclick="showPage('gamePage')">1-бет: Арқан тартыс ойыны</button>
+        <button class="btn btn-success" onclick="showPage('testPage')">2-бет: Күрделі тест</button>
+      </div>
+    </div>
+
+    <section id="gamePage" class="page active">
+      <div class="hero">
+        <h2>Арқан тартыс — жылдам жауап ойыны</h2>
+        <p class="muted">Екі топқа ортақ бір сұрақ беріледі. Қай топ дұрыс жауапты <strong>бірінші</strong> таңдайды — арқан сол топқа қарай жылжиды. Әр кезеңде 1 сұрақ. Барлығы 7 кезең.</p>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <div class="teams">
+            <div class="team-box team-a">
+              <h3>1-топ</h3>
+              <div class="score" id="scoreA">0</div>
+              <div class="small muted">Дұрыс жауап саны</div>
+            </div>
+            <div class="team-box team-b">
+              <h3>2-топ</h3>
+              <div class="score" id="scoreB">0</div>
+              <div class="small muted">Дұрыс жауап саны</div>
+            </div>
+          </div>
+
+          <div class="status-row">
+            <div class="badge">Кезең: <span id="roundLabel">0 / 7</span></div>
+            <div class="badge">Арқан орны: <span id="ropeLabel">0</span></div>
+            <div class="badge">Қалған уақыт: <span id="timeLeftTop">—</span></div>
+          </div>
+
+          <div class="rope-wrap">
+            <div class="rope-field">
+              <div class="win-line-left"></div>
+              <div class="win-line-right"></div>
+              <div class="center-line"></div>
+              <div class="puller left">🧪</div>
+              <div class="puller right">🧪</div>
+              <div class="rope"></div>
+              <div class="marker" id="ropeMarker"></div>
+            </div>
+          </div>
+
+          <div class="question-box">
+            <div class="question-title" id="gameQuestionTitle">Ойынды бастау үшін батырманы басыңыз</div>
+            <div id="gameQuestionText" class="muted">Сұрақ осы жерде шығады.</div>
+            <div class="answers" id="gameAnswers"></div>
+          </div>
+
+          <div class="result" id="gameResult">
+            Ойын әлі басталған жоқ.
+          </div>
+
+          <div class="status-row">
+            <button class="btn btn-primary" onclick="startGame()">Ойынды бастау</button>
+            <button class="btn btn-warn" onclick="nextRoundManual()">Келесі сұрақ</button>
+            <button class="btn btn-danger" onclick="resetGame()">Қайта бастау</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Топтардың жауап панелі</h3>
+          <p class="muted">Әр топ жеке батырманы басады. Кім бірінші болып дұрыс жауап берсе, сол топ ұтады.</p>
+
+          <div class="team-panels">
+            <div class="panel team-a-border">
+              <h3>1-топтың таймері</h3>
+              <div class="timer" id="timerA">—</div>
+              <button id="teamAAnswerBtn" class="btn" onclick="lockTeamChoice('A')" disabled>1-топ жауап береді</button>
+              <div class="small muted" id="teamAState">Күту режимі</div>
+            </div>
+            <div class="panel team-b-border">
+              <h3>2-топтың таймері</h3>
+              <div class="timer" id="timerB">—</div>
+              <button id="teamBAnswerBtn" class="btn" onclick="lockTeamChoice('B')" disabled>2-топ жауап береді</button>
+              <div class="small muted" id="teamBState">Күту режимі</div>
+            </div>
+          </div>
+
+          <div class="summary" id="winnerBox">
+            Жеңімпаз топ ойында анықталады.
+          </div>
+
+          <div class="footer-note">
+            Ұсыныс: бұл нұсқада мұғалім экраннан сұрақты көрсетіп, топтар кезек күтпей жылдам жауап таңдай алады.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="testPage" class="page">
+      <div class="hero">
+        <h2>Күрделі тест тапсырмасы</h2>
+        <p class="muted">Бұл бетте ойын сұрақтарынан <strong>мүлде бөлек</strong> жоғары деңгейлі тест берілген. Сұрақтар қайталанбайды.</p>
+      </div>
+
+      <div class="card" style="margin-top:20px;">
+        <div class="test-header">
+          <div>
+            <h3>Бақылау тесті</h3>
+            <div class="muted">10 күрделі сұрақ</div>
+          </div>
+          <div>
+            <button class="btn btn-primary" onclick="renderTest()">Тестті қайта жүктеу</button>
+            <button class="btn btn-success" onclick="gradeTest()">Нәтижені шығару</button>
+          </div>
+        </div>
+        <div class="progress"><div id="testProgressBar"></div></div>
+        <div id="testContainer"></div>
+        <div class="summary" id="testSummary">Жауаптарды белгілеп, «Нәтижені шығару» батырмасын басыңыз.</div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const gameQuestions = [
+      {
+        q: '20°C-та 100 г суда 36 г NaCl ериді. Бұл ерітінді қандай күйде болады?',
+        text: 'Еріген зат мөлшері дәл ерігіштікке тең.',
+        answers: ['Қанықпаған', 'Қаныққан', 'Аса қаныққан', 'Коллоидты'],
+        correct: 1,
+        explain: 'Берілген мөлшер ерігіштікке дәл тең, сондықтан ерітінді қаныққан болады.'
+      },
+      {
+        q: 'Қай фактор газдардың суда ерігіштігін арттырады?',
+        text: 'Газдардың еруі үшін қолайлы жағдайды таңдаңыз.',
+        answers: ['Температураны көтеру', 'Қысымды арттыру', 'Ерітіндіні қайнату', 'Суды азайту'],
+        correct: 1,
+        explain: 'Газдардың ерігіштігі қысым артқанда көбіне өседі.'
+      },
+      {
+        q: 'Көпшілік қатты заттар үшін температура артқанда ерігіштік қалай өзгереді?',
+        text: 'Жалпы заңдылықты анықтаңыз.',
+        answers: ['Кемиді', 'Өзгермейді', 'Артады', 'Алдымен артады, сосын кемиді'],
+        correct: 2,
+        explain: 'Көптеген қатты заттарда температура өскен сайын ерігіштік те өседі.'
+      },
+      {
+        q: 'Егер ерітіндіде ерімей қалған кристалл табанда жатса, бұл нені көрсетеді?',
+        text: 'Еру процесі тепе-теңдікке жеткен болуы мүмкін.',
+        answers: ['Ерітінді міндетті түрде қанықпаған', 'Еріткіш буланған жоқ', 'Ерітінді қаныққан болуы мүмкін', 'Температура тым жоғары'],
+        correct: 2,
+        explain: 'Артық қатты фаза қалуы — қаныққан ерітінді белгісі.'
+      },
+      {
+        q: 'Қай жұп «еріген зат – еріткіш» дұрыс берілген?',
+        text: 'Ерітінді құрылымын анықтаңыз.',
+        answers: ['Су – қант', 'Қант – су', 'Тұзды су – ас тұзы', 'Ерітінді – су'],
+        correct: 1,
+        explain: 'Қант — еріген зат, су — еріткіш.'
+      },
+      {
+        q: 'Араластырудың ерігіштікке әсері қандай?',
+        text: 'Еру жылдамдығы мен ерігіштікті ажыратыңыз.',
+        answers: ['Ерігіштікті әрқашан күрт арттырады', 'Еру жылдамдығын арттырады, бірақ шекті ерігіштікке әсері аз', 'Ерігіштікті нөлге түсіреді', 'Газ ерігіштігін ғана өзгертеді'],
+        correct: 1,
+        explain: 'Араластыру көбіне еру жылдамдығын арттырады, бірақ берілген температурадағы шекті ерігіштікті өзгертпейді.'
+      },
+      {
+        q: 'Ерігіштік қисығы бойынша температура төмендегенде аса қаныққан ерітіндіге не тән?',
+        text: 'Тұрақтылығы төмен жүйені сипаттаңыз.',
+        answers: ['Кристалдануға бейім', 'Мүлде өзгермейді', 'Тек газ бөледі', 'Тек түсі өзгереді'],
+        correct: 0,
+        explain: 'Аса қаныққан ерітінді тұрақсыз, кристалдануға оңай ұшырайды.'
+      }
+    ];
+
+    const testQuestions = [
+      {
+        q: '50°C-та KNO₃ ерігіштігі 84 г/100 г H₂O, ал 20°C-та 32 г/100 г H₂O болса, 50°C-та дайындалған және 20°C-қа дейін салқындатылған 100 г судағы қаныққан ерітіндіден қанша грамм тұз кристалданады?',
+        options: ['84 г', '52 г', '32 г', '116 г'],
+        correct: 1,
+        explanation: '84 – 32 = 52 г кристалданады.'
+      },
+      {
+        q: 'Қай тұжырым дұрыс: еру жылуы оң болатын қатты зат үшін температураны арттыру әсері қандай?',
+        options: ['Ерігіштік кемиді', 'Ерігіштік артпайды', 'Көп жағдайда ерігіштік артады', 'Тек газдар үшін артады'],
+        correct: 2,
+        explanation: 'Эндотермиялық еруде температура өсуі көбіне ерігіштікті арттырады.'
+      },
+      {
+        q: 'Егер 25°C-та белгілі тұздың ерігіштігі 40 г/100 г су болса, 250 г қаныққан ерітіндіде еріген зат массасы неше грамм?',
+        options: ['50 г', '71.4 г', '100 г', '40 г'],
+        correct: 1,
+        explanation: '100 г суда 40 г тұз болса, 140 г ерітіндіде 40 г тұз бар. 250 г ерітіндіде x = 250×40/140 = 71.4 г.'
+      },
+      {
+        q: 'Қай жағдайда газдың сұйықтықтағы ерігіштігі ең жоғары болады?',
+        options: ['Жоғары температура, төмен қысым', 'Төмен температура, жоғары қысым', 'Жоғары температура, жоғары қысым', 'Төмен температура, төмен қысым'],
+        correct: 1,
+        explanation: 'Газдар үшін төмен температура және жоғары қысым қолайлы.'
+      },
+      {
+        q: 'Қанықпаған ерітіндіге аз мөлшерде сол заттың кристалын салғанда не байқалады?',
+        options: ['Міндетті түрде тұнба түседі', 'Еш өзгеріссіз кристалл ериді', 'Газ бөлінеді', 'Еріткіш буланады'],
+        correct: 1,
+        explanation: 'Қанықпаған ерітіндіде қосымша зат әлі ери алады.'
+      },
+      {
+        q: 'Ерігіштік коэффициенті S = 25 г/100 г H₂O. 300 г суда ең көп дегенде неше грамм зат ериді?',
+        options: ['25 г', '50 г', '75 г', '125 г'],
+        correct: 2,
+        explanation: '300 г су үшін: 25 × 3 = 75 г.'
+      },
+      {
+        q: 'Ерігіштікке әсер ететін факторлардың ішінен берілген зат пен еріткіш табиғаты нені анықтайды?',
+        options: ['Тек еру жылдамдығын', 'Негізгі ерігіштік деңгейін', 'Тек ерітінді түсін', 'Тек тұтқырлықты'],
+        correct: 1,
+        explanation: '«Ұқсас ұқсаста ериді» қағидасы негізгі ерігіштік деңгейін айқындайды.'
+      },
+      {
+        q: '100 г суға 45 г зат қосылды. Сол температурада ерігіштік 30 г/100 г су. Қоспадағы ерімей қалған зат массасы қанша?',
+        options: ['10 г', '15 г', '30 г', '45 г'],
+        correct: 1,
+        explanation: '30 г ериді, 45 – 30 = 15 г ерімей қалады.'
+      },
+      {
+        q: 'Қайсысы аса қаныққан ерітінді алу тәсіліне жатады?',
+        options: ['Қаныққан ерітіндіні қыздырып дайындап, баяу салқындату', 'Қанықпаған ерітіндіні сұйылту', 'Ерітіндіге еріткіш қосу', 'Қатты затты сүзу'],
+        correct: 0,
+        explanation: 'Жылыда көп ерітіп, кейін жай салқындату аса қаныққан ерітіндіге әкелуі мүмкін.'
+      },
+      {
+        q: 'Ерігіштік қисығын талдағанда қисықтың тік көтерілуі нені білдіреді?',
+        options: ['Температура өзгерісі ерігіштікке әлсіз әсер етеді', 'Температура өскенде ерігіштік тез артады', 'Қысым негізгі фактор', 'Зат мүлде ерімейді'],
+        correct: 1,
+        explanation: 'Қисық неғұрлым тік болса, температураға тәуелділік соғұрлым күшті.'
+      }
+    ];
+
+    let ropePos = 50;
+    let roundIndex = -1;
+    let scoreA = 0;
+    let scoreB = 0;
+    let currentCorrect = null;
+    let currentResolved = false;
+    let timeRemaining = 12;
+    let interval = null;
+    let startTime = null;
+    let lockA = false;
+    let lockB = false;
+    let responseA = null;
+    let responseB = null;
+
+    function showPage(id) {
+      document.querySelectorAll('.page').forEach(page => page.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      if (id === 'testPage') updateTestProgress();
+    }
+
+    function updateRope() {
+      document.documentElement.style.setProperty('--ropePos', ropePos);
+      document.getElementById('ropeMarker').style.left = ropePos + '%';
+      document.getElementById('ropeLabel').textContent = (ropePos - 50 > 0 ? '+' : '') + (ropePos - 50);
+    }
+
+    function resetTimersView() {
+      document.getElementById('timerA').textContent = '—';
+      document.getElementById('timerB').textContent = '—';
+      document.getElementById('timeLeftTop').textContent = '—';
+      document.getElementById('teamAState').textContent = 'Күту режимі';
+      document.getElementById('teamBState').textContent = 'Күту режимі';
+    }
+
+    function startGame() {
+      roundIndex = -1;
+      scoreA = 0;
+      scoreB = 0;
+      ropePos = 50;
+      document.getElementById('scoreA').textContent = scoreA;
+      document.getElementById('scoreB').textContent = scoreB;
+      document.getElementById('winnerBox').textContent = 'Ойын басталды. Топтар дайын болсын!';
+      document.getElementById('gameResult').textContent = 'Бірінші сұрақ жүктелуде...';
+      updateRope();
+      nextRound();
+    }
+
+    function resetGame() {
+      clearInterval(interval);
+      roundIndex = -1;
+      scoreA = 0;
+      scoreB = 0;
+      ropePos = 50;
+      currentResolved = false;
+      currentCorrect = null;
+      document.getElementById('scoreA').textContent = '0';
+      document.getElementById('scoreB').textContent = '0';
+      document.getElementById('roundLabel').textContent = '0 / 7';
+      document.getElementById('gameQuestionTitle').textContent = 'Ойынды бастау үшін батырманы басыңыз';
+      document.getElementById('gameQuestionText').textContent = 'Сұрақ осы жерде шығады.';
+      document.getElementById('gameAnswers').innerHTML = '';
+      document.getElementById('gameResult').textContent = 'Ойын қайта бастауға дайын.';
+      document.getElementById('winnerBox').textContent = 'Жеңімпаз топ ойында анықталады.';
+      document.getElementById('teamAAnswerBtn').disabled = true;
+      document.getElementById('teamBAnswerBtn').disabled = true;
+      resetTimersView();
+      updateRope();
+    }
+
+    function nextRoundManual() {
+      if (roundIndex === -1) {
+        startGame();
+        return;
+      }
+      if (!currentResolved) {
+        document.getElementById('gameResult').textContent = 'Алдымен ағымдағы сұрақ аяқталуы керек.';
+        return;
+      }
+      nextRound();
+    }
+
+    function nextRound() {
+      clearInterval(interval);
+      roundIndex++;
+      if (roundIndex >= gameQuestions.length) {
+        finishGame();
+        return;
+      }
+
+      const item = gameQuestions[roundIndex];
+      currentCorrect = item.correct;
+      currentResolved = false;
+      timeRemaining = 12;
+      startTime = performance.now();
+      lockA = false;
+      lockB = false;
+      responseA = null;
+      responseB = null;
+
+      document.getElementById('roundLabel').textContent = `${roundIndex + 1} / ${gameQuestions.length}`;
+      document.getElementById('gameQuestionTitle').textContent = item.q;
+      document.getElementById('gameQuestionText').textContent = item.text;
+      document.getElementById('gameResult').textContent = 'Екі топ та жауап батырмасын басып, кейін нұсқаны таңдасын.';
+      document.getElementById('teamAAnswerBtn').disabled = false;
+      document.getElementById('teamBAnswerBtn').disabled = false;
+      document.getElementById('teamAState').textContent = 'Жауап беруге дайын';
+      document.getElementById('teamBState').textContent = 'Жауап беруге дайын';
+      document.getElementById('timerA').textContent = '0.000 с';
+      document.getElementById('timerB').textContent = '0.000 с';
+      document.getElementById('timeLeftTop').textContent = timeRemaining + ' с';
+
+      const answersHtml = item.answers.map((ans, idx) => `
+        <button class="answer-btn" onclick="selectAnswer(${idx})">${String.fromCharCode(65 + idx)}. ${ans}</button>
+      `).join('');
+      document.getElementById('gameAnswers').innerHTML = answersHtml;
+
+      interval = setInterval(() => {
+        timeRemaining--;
+        document.getElementById('timeLeftTop').textContent = timeRemaining + ' с';
+        if (timeRemaining <= 0) {
+          clearInterval(interval);
+          if (!currentResolved) {
+            currentResolved = true;
+            document.getElementById('teamAAnswerBtn').disabled = true;
+            document.getElementById('teamBAnswerBtn').disabled = true;
+            document.getElementById('gameResult').textContent = `Уақыт аяқталды. Дұрыс жауап: ${item.answers[item.correct]}. ${item.explain}`;
+            document.getElementById('winnerBox').textContent = 'Бұл кезеңде ешбір топ ұпай алған жоқ. "Келесі сұрақ" батырмасын басыңыз.';
+          }
+        }
+      }, 1000);
+    }
+
+    function lockTeamChoice(team) {
+      if (currentResolved) return;
+      const now = performance.now();
+      const diff = ((now - startTime) / 1000).toFixed(3) + ' с';
+      if (team === 'A' && !lockA) {
+        lockA = true;
+        document.getElementById('timerA').textContent = diff;
+        document.getElementById('teamAState').textContent = 'Нұсқаны таңдады/таңдайды';
+      }
+      if (team === 'B' && !lockB) {
+        lockB = true;
+        document.getElementById('timerB').textContent = diff;
+        document.getElementById('teamBState').textContent = 'Нұсқаны таңдады/таңдайды';
+      }
+    }
+
+    function selectAnswer(index) {
+      if (currentResolved) return;
+      const item = gameQuestions[roundIndex];
+
+      if (!lockA && !lockB) {
+        document.getElementById('gameResult').textContent = 'Алдымен топтардың біреуі не екеуі де «жауап береді» батырмасын басуы керек.';
+        return;
+      }
+
+      if (lockA && responseA === null) responseA = { answer: index, time: parseFloat(document.getElementById('timerA').textContent) || 999 };
+      if (lockB && responseB === null) responseB = { answer: index, time: parseFloat(document.getElementById('timerB').textContent) || 999 };
+
+      const aCorrect = responseA && responseA.answer === currentCorrect;
+      const bCorrect = responseB && responseB.answer === currentCorrect;
+
+      let winner = null;
+      if (aCorrect && bCorrect) {
+        winner = responseA.time <= responseB.time ? 'A' : 'B';
+      } else if (aCorrect) {
+        winner = 'A';
+      } else if (bCorrect) {
+        winner = 'B';
+      } else if (responseA || responseB) {
+        winner = 'none';
+      }
+
+      currentResolved = true;
+      clearInterval(interval);
+      document.getElementById('teamAAnswerBtn').disabled = true;
+      document.getElementById('teamBAnswerBtn').disabled = true;
+
+      if (winner === 'A') {
+        scoreA++;
+        ropePos = Math.min(82, ropePos + 6);
+        document.getElementById('scoreA').textContent = scoreA;
+        document.getElementById('gameResult').textContent = `1-топ ұтты. Дұрыс жауап: ${item.answers[item.correct]}. ${item.explain}`;
+      } else if (winner === 'B') {
+        scoreB++;
+        ropePos = Math.max(18, ropePos - 6);
+        document.getElementById('scoreB').textContent = scoreB;
+        document.getElementById('gameResult').textContent = `2-топ ұтты. Дұрыс жауап: ${item.answers[item.correct]}. ${item.explain}`;
+      } else {
+        document.getElementById('gameResult').textContent = `Екі топ та дұрыс жауап бермеді. Дұрыс жауап: ${item.answers[item.correct]}. ${item.explain}`;
+      }
+
+      updateRope();
+
+      if (ropePos >= 82) {
+        finishGame('A');
+      } else if (ropePos <= 18) {
+        finishGame('B');
+      } else {
+        const leaderText = scoreA === scoreB ? 'Есеп тең. Келесі сұрақты жалғастырыңыз.' : (scoreA > scoreB ? 'Қазір 1-топ алда.' : 'Қазір 2-топ алда.');
+        document.getElementById('winnerBox').textContent = leaderText + ' «Келесі сұрақ» батырмасын басыңыз.';
+      }
+    }
+
+    function finishGame(forcedWinner = null) {
+      clearInterval(interval);
+      document.getElementById('teamAAnswerBtn').disabled = true;
+      document.getElementById('teamBAnswerBtn').disabled = true;
+      currentResolved = true;
+
+      let finalWinner = forcedWinner;
+      if (!finalWinner) {
+        if (scoreA > scoreB) finalWinner = 'A';
+        else if (scoreB > scoreA) finalWinner = 'B';
+        else finalWinner = 'draw';
+      }
+
+      if (finalWinner === 'A') {
+        document.getElementById('winnerBox').textContent = `🏆 Жеңімпаз: 1-топ. Жалпы ұпай: ${scoreA}:${scoreB}`;
+      } else if (finalWinner === 'B') {
+        document.getElementById('winnerBox').textContent = `🏆 Жеңімпаз: 2-топ. Жалпы ұпай: ${scoreB}:${scoreA}`;
+      } else {
+        document.getElementById('winnerBox').textContent = `🤝 Нәтиже тең: ${scoreA}:${scoreB}`;
+      }
+
+      document.getElementById('gameResult').textContent = 'Ойын аяқталды. Қажет болса, «Қайта бастау» батырмасын басыңыз.';
+      document.getElementById('gameQuestionTitle').textContent = 'Барлық 7 сұрақ аяқталды';
+      document.getElementById('gameQuestionText').textContent = 'Енді 2-беттегі күрделі тестке өте аласыз.';
+      document.getElementById('gameAnswers').innerHTML = '';
+      document.getElementById('timeLeftTop').textContent = '0 с';
+    }
+
+    function renderTest() {
+      const container = document.getElementById('testContainer');
+      container.innerHTML = '';
+      testQuestions.forEach((item, i) => {
+        const html = document.createElement('div');
+        html.className = 'test-question';
+        html.innerHTML = `
+          <h3>${i + 1}. ${item.q}</h3>
+          ${item.options.map((opt, idx) => `
+            <label class="option">
+              <input type="radio" name="q${i}" value="${idx}" onchange="updateTestProgress()" />
+              ${opt}
+            </label>
+          `).join('')}
+          <div class="small muted hidden" id="explain-${i}"></div>
+        `;
+        container.appendChild(html);
+      });
+      document.getElementById('testSummary').textContent = 'Жауаптарды белгілеп, «Нәтижені шығару» батырмасын басыңыз.';
+      updateTestProgress();
+    }
+
+    function updateTestProgress() {
+      const answered = testQuestions.filter((_, i) => document.querySelector(`input[name="q${i}"]:checked`)).length;
+      const percent = Math.round((answered / testQuestions.length) * 100);
+      document.getElementById('testProgressBar').style.width = percent + '%';
+    }
+
+    function gradeTest() {
+      let score = 0;
+      testQuestions.forEach((item, i) => {
+        const chosen = document.querySelector(`input[name="q${i}"]:checked`);
+        const explainEl = document.getElementById(`explain-${i}`);
+        if (!explainEl) return;
+        explainEl.classList.remove('hidden');
+
+        if (chosen && Number(chosen.value) === item.correct) {
+          score++;
+          explainEl.innerHTML = `✅ Дұрыс. ${item.explanation}`;
+        } else {
+          explainEl.innerHTML = `❌ Қате. Дұрыс жауап: <strong>${item.options[item.correct]}</strong>. ${item.explanation}`;
+        }
+      });
+
+      let level = '';
+      if (score >= 9) level = 'Өте жоғары деңгей';
+      else if (score >= 7) level = 'Жақсы деңгей';
+      else if (score >= 5) level = 'Орташа деңгей';
+      else level = 'Қайталау қажет';
+
+      document.getElementById('testSummary').innerHTML = `
+        <h3>Тест нәтижесі: ${score} / ${testQuestions.length}</h3>
+        <p><strong>Бағалау:</strong> ${level}</p>
+        <p class="muted">Бұл сұрақтар ойын бетіндегі 7 сұрақтан бөлек дайындалған.</p>
+      `;
+      updateTestProgress();
+    }
+
+    updateRope();
+    resetTimersView();
+    renderTest();
+  </script>
+</body>
+</html>
